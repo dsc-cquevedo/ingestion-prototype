@@ -63,6 +63,7 @@ public class IngestionService {
 			
 			connection.setAutoCommit(false); //For PostgreSQL
 			statement.setFetchSize(fetchSize);
+			
 			resultSet = statement.executeQuery(MessageFormat.format("SELECT * FROM {0}.{1} LIMIT 1500000", schema, table));
 			final int columnSize = resultSet.getMetaData().getColumnCount();
 			List<String> row;
@@ -100,44 +101,6 @@ public class IngestionService {
 				}
 			}
 		}
-		
-		//Spring rowset
-		/*this.jdbcDAO.getJdbcTemplate().setFetchSize(fetchSize);
-		final SqlRowSet resultSet = this.jdbcDAO.getJdbcTemplate().queryForRowSet(MessageFormat.format("SELECT * FROM {0}.{1}", schema, table));
-		final int columnSize = resultSet.getMetaData().getColumnCount();
-		List<String> row;
-		final List<String> tablePart = new ArrayList<>();
-		int countRows = 0;
-		while (resultSet.next()) {
-			row = new ArrayList<String>();
-			for ( int i=1; i<=columnSize; i++ ) {
-				row.add(resultSet.getObject(i)!=null ? resultSet.getObject(i).toString() : "");
-			}
-			
-			tablePart.add(StringUtils.join(row, ","));
-			
-			if ( tablePart.size() == fetchSize ) {
-				this.sendToFile(fileNamePath, tablePart);
-			}
-			
-			if ( (++countRows % 50000) == 0 ) {
-				LOGGER.info(MessageFormat.format("Rows: {0}", countRows));
-			}
-		}
-		
-		if ( tablePart!=null && !tablePart.isEmpty() ) {
-			this.sendToFile(fileNamePath, tablePart);
-		}*/
-		
-		//Spring stream
-		/*final Stream<String> streamRows = this.jdbcDAO.getJdbcTemplate().queryForStream(MessageFormat.format("SELECT * FROM {0}.{1}", schema, table), (resultSet, rowNum) -> {
-			final int columnSize = resultSet.getMetaData().getColumnCount();
-			final List<String> row = new ArrayList<>();
-			for ( int i=1; i<=columnSize; i++ ) {
-				row.add(resultSet.getObject(i)!=null ? resultSet.getObject(i).toString() : "");
-			}
-			return StringUtils.join(row, ",");
-		});*/
 		
 		LOGGER.info(MessageFormat.format("Duration extract {0} seconds", MILLIS.between(init, LocalTime.now())/(double)1000));
 	}
