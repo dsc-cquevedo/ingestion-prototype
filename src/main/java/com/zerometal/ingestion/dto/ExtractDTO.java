@@ -1,5 +1,7 @@
 package com.zerometal.ingestion.dto;
 
+import java.nio.file.Path;
+
 import lombok.Builder;
 import lombok.Data;
 
@@ -8,4 +10,5 @@ import lombok.Data;
 public class ExtractDTO {
 	private String schema;
 	private String table;
+	private Path outputFile;
 }

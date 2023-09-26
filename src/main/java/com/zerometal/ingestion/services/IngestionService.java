@@ -30,18 +30,22 @@ public class IngestionService {
 
 	private static final Logger LOGGER = LogManager.getLogger(IngestionService.class);
 	
-	@Value("${spring.datasource.url}")
+	private static final String EXTRACT_PATH = "results/extract/{0}_{1}.csv";
+	private static final String EXTRACT_SELECT = "SELECT * FROM {0}.{1} LIMIT 500";
+	
+	@Value("${application.datasource.url}")
 	private String url;
-	@Value("${spring.datasource.username}")
+	@Value("${application.datasource.username}")
 	private String username;	
-	@Value("${spring.datasource.password}")
+	@Value("${application.datasource.password}")
 	private String password;
 	
 	public void ingest(String schema, String table) throws Exception {
 		LOGGER.info(MessageFormat.format("Schema: {0} Table: {1}", schema, table));
 		final LocalTime init = LocalTime.now();
 		
-		this.extract(ExtractDTO.builder().schema(schema).table(table).build());
+		final ExtractDTO extractDTO = ExtractDTO.builder().schema(schema).table(table).build(); 
+		this.extract(extractDTO);
 		
 		final LocalTime end = LocalTime.now();
 		LOGGER.info(MessageFormat.format("Duration Total {0} seconds", MILLIS.between(init, end)/(double)1000));
@@ -50,10 +54,9 @@ public class IngestionService {
 	private void extract(ExtractDTO extractDTO) {
 		final LocalTime init = LocalTime.now();
 		final int fetchSize = 500;
-		final String fileName = MessageFormat.format("results/extract/{0}_{1}.csv", extractDTO.getSchema(), extractDTO.getTable());
-		final Path fileNamePath = Paths.get(fileName);
+		extractDTO.setOutputFile(Paths.get(MessageFormat.format(EXTRACT_PATH, extractDTO.getSchema(), extractDTO.getTable())));
 		try {
-			Files.deleteIfExists(fileNamePath);
+			Files.deleteIfExists(extractDTO.getOutputFile());
 		} catch (final IOException e) {
 			e.printStackTrace();
 		}
@@ -66,7 +69,7 @@ public class IngestionService {
 			connection.setAutoCommit(false); //For PostgreSQL
 			statement.setFetchSize(fetchSize);
 			
-			resultSet = statement.executeQuery(MessageFormat.format("SELECT * FROM {0}.{1} LIMIT 5000", extractDTO.getSchema(), extractDTO.getTable()));
+			resultSet = statement.executeQuery(MessageFormat.format(EXTRACT_SELECT, extractDTO.getSchema(), extractDTO.getTable()));
 			final int columnSize = resultSet.getMetaData().getColumnCount();
 			List<String> row;
 			final List<String> tablePart = new ArrayList<>();
@@ -80,7 +83,7 @@ public class IngestionService {
 				tablePart.add(StringUtils.join(row, ","));
 				
 				if ( tablePart.size() == fetchSize ) {
-					this.sendToFile(fileNamePath, tablePart);
+					this.sendToFile(extractDTO.getOutputFile(), tablePart);
 				}
 				
 				if ( (++countRows % 50000) == 0 ) {
@@ -89,7 +92,7 @@ public class IngestionService {
 			}
 			
 			if ( tablePart!=null && !tablePart.isEmpty() ) {
-				this.sendToFile(fileNamePath, tablePart);
+				this.sendToFile(extractDTO.getOutputFile(), tablePart);
 			}
 			
 		} catch (final SQLException e) {
@@ -113,7 +116,7 @@ public class IngestionService {
 				try {
 					Files.write(fileNamePath, row.concat("\n").getBytes(), Files.exists(fileNamePath) ? StandardOpenOption.APPEND : StandardOpenOption.CREATE_NEW);
 				} catch (final IOException e) {
-					e.printStackTrace();
+					LOGGER.error(e);
 				}
 			}
 			tablePart.clear();
