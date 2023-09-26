@@ -36,7 +36,7 @@ public class IngestionService {
 	@Value("${application.datasource.url}")
 	private String url;
 	@Value("${application.datasource.username}")
-	private String username;	
+	private String username;
 	@Value("${application.datasource.password}")
 	private String password;
 	
