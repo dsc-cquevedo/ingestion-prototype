@@ -23,6 +23,8 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.zerometal.ingestion.dto.ExtractDTO;
+
 @Service
 public class IngestionService {
 
@@ -39,16 +41,16 @@ public class IngestionService {
 		LOGGER.info(MessageFormat.format("Schema: {0} Table: {1}", schema, table));
 		final LocalTime init = LocalTime.now();
 		
-		this.extract(schema, table);
+		this.extract(ExtractDTO.builder().schema(schema).table(table).build());
 		
 		final LocalTime end = LocalTime.now();
 		LOGGER.info(MessageFormat.format("Duration Total {0} seconds", MILLIS.between(init, end)/(double)1000));
 	}
 
-	private void extract(String schema, String table) {
+	private void extract(ExtractDTO extractDTO) {
 		final LocalTime init = LocalTime.now();
 		final int fetchSize = 500;
-		final String fileName = MessageFormat.format("{0}_{1}.csv", schema, table);
+		final String fileName = MessageFormat.format("results/extract/{0}_{1}.csv", extractDTO.getSchema(), extractDTO.getTable());
 		final Path fileNamePath = Paths.get(fileName);
 		try {
 			Files.deleteIfExists(fileNamePath);
@@ -64,7 +66,7 @@ public class IngestionService {
 			connection.setAutoCommit(false); //For PostgreSQL
 			statement.setFetchSize(fetchSize);
 			
-			resultSet = statement.executeQuery(MessageFormat.format("SELECT * FROM {0}.{1} LIMIT 1500000", schema, table));
+			resultSet = statement.executeQuery(MessageFormat.format("SELECT * FROM {0}.{1} LIMIT 5000", extractDTO.getSchema(), extractDTO.getTable()));
 			final int columnSize = resultSet.getMetaData().getColumnCount();
 			List<String> row;
 			final List<String> tablePart = new ArrayList<>();
