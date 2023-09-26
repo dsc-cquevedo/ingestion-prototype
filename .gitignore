@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+
+/results/extract/**
+/results/split/**
+/results/compact/**
+/results/load/**
